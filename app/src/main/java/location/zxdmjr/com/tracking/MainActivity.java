@@ -1,12 +1,15 @@
 package location.zxdmjr.com.tracking;
 
 import android.Manifest;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.Location;
+import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -14,6 +17,7 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -25,8 +29,24 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
+import com.google.android.gms.maps.model.LatLng;
 
+import java.util.List;
+
+import location.zxdmjr.com.tracking.models.MyGeo;
+import location.zxdmjr.com.tracking.models.MyLocation;
+import location.zxdmjr.com.tracking.models.MyLtnLng;
+import location.zxdmjr.com.tracking.responses.GeoResponse;
+import location.zxdmjr.com.tracking.retrofits.GeoApiClient;
+import location.zxdmjr.com.tracking.retrofits.GeoService;
 import location.zxdmjr.com.tracking.services.LocationMonitoringService;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,13 +59,55 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean mAlreadyStartedService = false;
-    private TextView mMsgView;
+    private TextView tvCurrentLoaction;
+
+    private TextView tvDestination;
+
+    private PlaceAutocompleteFragment placeLocation;
+    private String destination;
+
+    private GeoService geoService;
+
+    private MyLtnLng mLtnLng;
+
+    private double minDistance = 50.00;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        mMsgView = (TextView) findViewById(R.id.msgView);
+        tvCurrentLoaction = (TextView) findViewById(R.id.tv_current_location);
+        tvDestination = (TextView) findViewById(R.id.tv_destination);
+
+        placeLocation = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_location);
+        placeLocation.setHint("Select your locations");
+
+
+        geoService = GeoApiClient.getClient().create(GeoService.class);
+
+        placeLocation.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+
+
+                destination = place.getAddress().toString().trim();
+                if(destination != null) {
+                    Log.d(TAG, "onPlaceSelected: "+destination);
+                    destination = destination.replaceAll("[,]", ""); //replace all space as +
+                    destination = destination.trim();
+                    destination = destination.replaceAll("[ ]", "+"); //replace all space as +
+                    Log.d(TAG, "onPlaceSelected: "+destination);
+                    fetchCoordinate(destination);
+                } else{
+                    Log.d(TAG, "onPlaceSelected: null");
+                }
+     
+            }
+            @Override
+            public void onError(Status status) {
+                Toast.makeText(getApplicationContext(), "Error: "+status.getStatusMessage(),Toast.LENGTH_SHORT);
+            }
+        });
 
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -56,12 +118,120 @@ public class MainActivity extends AppCompatActivity {
                         String longitude = intent.getStringExtra(LocationMonitoringService.EXTRA_LONGITUDE);
 
                         if (latitude != null && longitude != null) {
-                            mMsgView.setText(getString(R.string.msg_location_service_started) + "\n Latitude : " + latitude + "\n Longitude: " + longitude);
-                            Toast.makeText(getApplicationContext(), "Latitude:" + latitude + " Longitude: " + longitude, Toast.LENGTH_SHORT).show();
+                            tvCurrentLoaction.setText(getString(R.string.msg_location_service_started) + "\n Latitude : " + latitude + "\n Longitude: " + longitude);
+                            //Toast.makeText(getApplicationContext(), "Latitude:" + latitude + " Longitude: " + longitude, Toast.LENGTH_SHORT).show();
+
+                            if(mLtnLng != null){
+
+                                float lat = Float.parseFloat(latitude);
+                                float lng = Float.parseFloat(longitude);
+
+                                double meter = meterDistanceBetweenPoints(lat, lng,(float) mLtnLng.getLat(), (float) mLtnLng.getLng());
+
+                                if(meter <= minDistance){
+                                    sendNotification();
+                                    Toast.makeText(getApplicationContext(), "You reached your destination", Toast.LENGTH_SHORT).show();
+                                }
+
+                            }
+
                         }
                     }
                 }, new IntentFilter(LocationMonitoringService.ACTION_LOCATION_BROADCAST)
         );
+    }
+
+    public void sendNotification() {
+
+        //Get an instance of NotificationManager//
+        //Uri path = Uri.parse("android.resource://com.androidbook.samplevideo/" + R.raw.ringtone);
+        Uri path = Uri.parse("android.resource://location.zxdmjr.com.tracking/raw/ringtone");
+        //Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        //Uri soundUri = RingtoneManager.getRingtone(this, );
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.drawable.ic_place_black_24dp)
+                        .setContentTitle("Destination")
+                        .setSound(path)
+                        .setContentText("You reached your destination");
+
+
+        // Gets an instance of the NotificationManager service//
+
+        NotificationManager mNotificationManager =
+
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        // When you issue multiple notifications about the same type of event,
+        // it’s best practice for your app to try to update an existing notification
+        // with this new information, rather than immediately creating a new notification.
+        // If you want to update this notification at a later date, you need to assign it an ID.
+        // You can then use this ID whenever you issue a subsequent notification.
+        // If the previous notification is still visible, the system will update this existing notification,
+        // rather than create a new one. In this example, the notification’s ID is 001//
+
+        mNotificationManager.notify(001, mBuilder.build());
+    }
+
+
+    private void fetchCoordinate(String address){
+
+
+        String key = getResources().getString(R.string.directions_api);
+
+        Call<GeoResponse> call = geoService.getGeoResponse(address);
+        call.enqueue(new Callback<GeoResponse>() {
+            @Override
+            public void onResponse(Call<GeoResponse> call, Response<GeoResponse> response) {
+
+                Log.d(TAG, "onResponse: ");
+
+
+                if(response.body() != null){
+
+                    GeoResponse geoResponse = response.body();
+
+                    List<MyGeo> geo = geoResponse.getMyGeos();
+
+                    if(geo != null && geo.size() >0){
+                        MyLocation location = geo.get(0).getmLocation();
+
+                        if(location != null){
+                            mLtnLng = location.getMyLtnLng();
+
+                            if(mLtnLng != null) {
+                                tvDestination.setText(String.format("Lat: %.6f Lng: %.6f", mLtnLng.getLat(), mLtnLng.getLng()));
+                                //LatLng latLng = new LatLng(mLtnLng.getLat(), mLtnLng.getLng());
+                            }
+                        }
+                    }
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<GeoResponse> call, Throwable t) {
+                Log.d(TAG, "onFailure: "+t.getLocalizedMessage());
+            }
+        });
+    }
+
+
+    private double meterDistanceBetweenPoints(float lat_a, float lng_a, float lat_b, float lng_b) {
+        float pk = (float) (180.f/Math.PI);
+
+        float a1 = lat_a / pk;
+        float a2 = lng_a / pk;
+        float b1 = lat_b / pk;
+        float b2 = lng_b / pk;
+
+        double t1 = Math.cos(a1) * Math.cos(a2) * Math.cos(b1) * Math.cos(b2);
+        double t2 = Math.cos(a1) * Math.sin(a2) * Math.cos(b1) * Math.sin(b2);
+        double t3 = Math.sin(a1) * Math.sin(b1);
+        double tt = Math.acos(t1 + t2 + t3);
+
+        return 6366000 * tt;
     }
 
 
@@ -162,9 +332,9 @@ public class MainActivity extends AppCompatActivity {
         //And it will be keep running until you close the entire application from task manager.
         //This method will executed only once.
 
-        if (!mAlreadyStartedService && mMsgView != null) {
+        if (!mAlreadyStartedService && tvCurrentLoaction != null) {
 
-            mMsgView.setText(R.string.msg_location_service_started);
+            tvCurrentLoaction.setText(R.string.msg_location_service_started);
 
             //Start location sharing service to app server.........
             Intent intent = new Intent(this, LocationMonitoringService.class);

@@ -9,4 +9,8 @@
     <string name="msg_location_service_not_started">Location Tracking Not Started</string>
     <string name="msg_location_service_started">Location Tracking Started</string>
     <string name="btn_label_refresh">Refresh</string>
+
+    <string name="directions_api">AIzaSyDQa6gMZyRrKTzrLgoyU6nazMW-9c0mZvY</string>
+    <string name="directions_api_android">AIzaSyAoAET4ps_Ow28pr1N3QCbtW1WV1LKjeJI</string>
+
 </resources>

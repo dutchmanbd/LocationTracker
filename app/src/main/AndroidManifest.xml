@@ -27,6 +27,10 @@
             </intent-filter>
         </activity>
 
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="@string/directions_api_android"/>
+
         <service android:name="location.zxdmjr.com.tracking.services.LocationMonitoringService" />
 
     </application>

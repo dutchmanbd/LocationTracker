@@ -5,45 +5,77 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#CCCCCC"
     tools:context="location.zxdmjr.com.tracking.MainActivity">
 
-    <LinearLayout
-        android:orientation="horizontal"
-        android:weightSum="6"
+    <android.support.v7.widget.CardView
+        android:id="@+id/cv_destination"
+        android:layout_margin="10dp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="40dp"
+        app:cardElevation="5dp">
 
-        <ImageView
-            android:layout_gravity="center_vertical"
-            android:src="@drawable/ic_place_black_24dp"
-            android:layout_weight="1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content" />
+        <LinearLayout
+            android:orientation="horizontal"
+            android:weightSum="6"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:id="@+id/linearLayout">
+            <fragment
+                android:layout_margin="5dp"
+                android:id="@+id/place_location"
+                android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+                android:layout_weight="6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"/>
 
-        <fragment
-            android:id="@+id/place_location"
-            android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
-            android:layout_weight="5"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"/>
+        </LinearLayout>
 
-    </LinearLayout>
-
+    </android.support.v7.widget.CardView>
 
     <LinearLayout
-        android:layout_centerInParent="true"
+        android:layout_marginTop="10dp"
+        android:layout_below="@+id/cv_destination"
         android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+
         <TextView
             android:gravity="center"
-            android:id="@+id/tv_current_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textColor="#000"
-            android:text="@string/msg_location_service_not_started"
+            android:text="Destination"
             />
+        <View
+            android:layout_marginRight="10dp"
+            android:layout_marginLeft="10dp"
+            android:background="#000"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"/>
+        <TextView
+            android:layout_marginTop="10dp"
+            android:gravity="center"
+            android:id="@+id/tv_destination_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textColor="#000"
+            android:text="Nabisco Bus Stand"
+            />
+
+        <TextView
+            android:gravity="center"
+            android:layout_marginTop="5dp"
+            android:id="@+id/tv_destination_coordinate"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="20sp"
+            android:textColor="#000"
+            android:text="23.7694, 90.3942"
+            />
+
 
         <TextView
             android:layout_marginTop="20dp"
@@ -52,29 +84,59 @@
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textColor="#000"
-            android:text="Destination:"
+            android:text="Current Location"
             />
+        <View
+            android:layout_marginRight="10dp"
+            android:layout_marginLeft="10dp"
+            android:background="#000"
+            android:layout_width="match_parent"
+            android:layout_height="2dp"/>
 
         <TextView
+            android:layout_marginTop="10dp"
             android:gravity="center"
-            android:id="@+id/tv_destination"
+            android:id="@+id/tv_current_location"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textSize="20sp"
             android:textColor="#000"
-            android:text="11,11"
+            android:text="23.7694, 90.3942"
             />
 
 
     </LinearLayout>
 
 
-    <!--<Button-->
-        <!--android:text="Notification"-->
-        <!--android:onClick="sendNotification"-->
-        <!--android:layout_alignParentBottom="true"-->
-        <!--android:layout_width="match_parent"-->
-        <!--android:layout_height="wrap_content" />-->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:weightSum="2"
+        android:layout_alignParentBottom="true"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/btn_start_remindar"
+            android:text="Start Remindar"
+            android:textColor="#FFF"
+            android:layout_margin="10dp"
+            android:background="@color/colorAccent"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/btn_stop_remindar"
+            android:text="Stop Remindar"
+            android:textColor="#575758"
+            android:background="#DDD"
+            android:layout_margin="10dp"
+            android:layout_weight="1"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content" />
+
+
+    </LinearLayout>
 
 
 </RelativeLayout>

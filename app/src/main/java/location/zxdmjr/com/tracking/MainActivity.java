@@ -37,6 +37,9 @@ import com.google.android.gms.maps.model.LatLng;
 
 import java.util.List;
 
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
 import location.zxdmjr.com.tracking.models.MyGeo;
 import location.zxdmjr.com.tracking.models.MyLocation;
 import location.zxdmjr.com.tracking.models.MyLtnLng;
@@ -59,9 +62,15 @@ public class MainActivity extends AppCompatActivity {
 
 
     private boolean mAlreadyStartedService = false;
-    private TextView tvCurrentLoaction;
 
-    private TextView tvDestination;
+    @BindView(R.id.tv_current_location)
+    TextView tvCurrentLoaction;
+
+    @BindView(R.id.tv_destination_name)
+    TextView tvDestinationName;
+
+    @BindView(R.id.tv_destination_coordinate)
+    TextView tvDestinationCoordinate;
 
     private PlaceAutocompleteFragment placeLocation;
     private String destination;
@@ -70,18 +79,19 @@ public class MainActivity extends AppCompatActivity {
 
     private MyLtnLng mLtnLng;
 
-    private double minDistance = 50.00;
+    private double minDistance = 500.00;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        tvCurrentLoaction = (TextView) findViewById(R.id.tv_current_location);
-        tvDestination = (TextView) findViewById(R.id.tv_destination);
+//        tvCurrentLoaction = (TextView) findViewById(R.id.tv_current_location);
+//        tvDestination = (TextView) findViewById(R.id.tv_destination);
+
+        ButterKnife.bind(this);
 
         placeLocation = (PlaceAutocompleteFragment) getFragmentManager().findFragmentById(R.id.place_location);
-        placeLocation.setHint("Select your locations");
-
+        placeLocation.setHint("Choose destination");
 
         geoService = GeoApiClient.getClient().create(GeoService.class);
 
@@ -95,6 +105,9 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(TAG, "onPlaceSelected: "+destination);
                     destination = destination.replaceAll("[,]", ""); //replace all space as +
                     destination = destination.trim();
+
+                    tvDestinationName.setText(destination);
+
                     destination = destination.replaceAll("[ ]", "+"); //replace all space as +
                     Log.d(TAG, "onPlaceSelected: "+destination);
                     fetchCoordinate(destination);
@@ -110,6 +123,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
+
+    }
+
+    @OnClick(R.id.btn_start_remindar)
+    void onStartRemindar(){
+
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 new BroadcastReceiver() {
                     @Override
@@ -123,10 +142,14 @@ public class MainActivity extends AppCompatActivity {
 
                             if(mLtnLng != null){
 
-                                float lat = Float.parseFloat(latitude);
-                                float lng = Float.parseFloat(longitude);
+//                                float lat = Float.parseFloat(latitude);
+//                                float lng = Float.parseFloat(longitude);
+                                double lat = Double.parseDouble(latitude);
+                                double lng = Double.parseDouble(longitude);
 
-                                double meter = meterDistanceBetweenPoints(lat, lng,(float) mLtnLng.getLat(), (float) mLtnLng.getLng());
+                                double meter =  getDistanceInMeter(lat, lng, mLtnLng.getLat(), mLtnLng.getLng());            // meterDistanceBetweenPoints(lat, lng,(float) mLtnLng.getLat(), (float) mLtnLng.getLng());
+
+                                Log.d(TAG, "onReceive: "+meter);
 
                                 if(meter <= minDistance){
                                     sendNotification();
@@ -139,6 +162,32 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }, new IntentFilter(LocationMonitoringService.ACTION_LOCATION_BROADCAST)
         );
+
+    }
+
+    @OnClick(R.id.btn_stop_remindar)
+    void onStopRemindar(){
+        stopService(new Intent(this, LocationMonitoringService.class));
+        mAlreadyStartedService = false;
+    }
+
+    private double getDistanceInMeter(double startLat, double startLong, double endLat, double endLong){
+        Location startPoint=new Location("locationA");
+//        startPoint.setLatitude(17.372102);
+//        startPoint.setLongitude(78.484196);
+        startPoint.setLatitude(startLat);
+        startPoint.setLongitude(startLong);
+
+        Location endPoint=new Location("locationA");
+//        endPoint.setLatitude(17.375775);
+//        endPoint.setLongitude(78.469218);
+
+        endPoint.setLatitude(endLat);
+        endPoint.setLongitude(endLong);
+
+        double distance=startPoint.distanceTo(endPoint);
+
+        return distance;
     }
 
     public void sendNotification() {
@@ -200,7 +249,7 @@ public class MainActivity extends AppCompatActivity {
                             mLtnLng = location.getMyLtnLng();
 
                             if(mLtnLng != null) {
-                                tvDestination.setText(String.format("Lat: %.6f Lng: %.6f", mLtnLng.getLat(), mLtnLng.getLng()));
+                                tvDestinationCoordinate.setText(String.format("Lat: %.6f Lng: %.6f", mLtnLng.getLat(), mLtnLng.getLng()));
                                 //LatLng latLng = new LatLng(mLtnLng.getLat(), mLtnLng.getLng());
                             }
                         }

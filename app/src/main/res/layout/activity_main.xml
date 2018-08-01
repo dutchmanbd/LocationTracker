@@ -107,7 +107,6 @@
 
     </LinearLayout>
 
-
     <LinearLayout
         android:orientation="horizontal"
         android:weightSum="2"
